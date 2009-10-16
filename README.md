@@ -1,6 +1,6 @@
 ## [trephine](http://trephine.org/t/index.php?title=Home)
 
-Exposes the full power of Java to browser JavaScript.
+Exposes the full power of the JVM to browser JavaScript.
 
 ### Developed by
 * Jim R. Wilson (jimbojw)
