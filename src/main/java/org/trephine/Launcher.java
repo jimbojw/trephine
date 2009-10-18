@@ -63,7 +63,7 @@ public class Launcher extends Applet {
 		
 		debug(fname, "START");
 
-        // Extract recognized applet parameters
+		// Extract recognized applet parameters
 		debug(fname, "extracting additional recognized parameters");
 		final String onload = this.getParameter("onload");
 		if (onload!=null && onload.length()>0) this.onload = onload;
@@ -81,26 +81,26 @@ public class Launcher extends Applet {
 			this.privileged = true;
 		} catch (SecurityException e) {
 			debug(fname, "privilege check failed, further applet interaction will also fail");
-		    if (this.onerror!=null && this.onerror.length()>0) {
-		        final Launcher applet = this;
-		        SwingUtilities.invokeLater(new Runnable() {
-			        public void run() {
-				        final String ifname = fname + ":invokeLater";
-				        try {
-					        Class<?> jsObject = Class.forName("netscape.javascript.JSObject");
-					        Method getWindow = jsObject.getMethod("getWindow", Applet.class);
-					        Method eval = jsObject.getMethod("eval", String.class);
-					        Object window = getWindow.invoke(jsObject, applet);
-					        String cbc = "("  + onerror + ")();";
-					        debug(ifname, "issuing callback: " + cbc);
-					        eval.invoke(window, new Object[] { cbc });
-				        } catch(Exception e) {
-					        debug(ifname, "problem occurred issuing callback");
-					        e.printStackTrace(System.out);
-				        }
-			        }
-		        });
-	        }
+			if (this.onerror!=null && this.onerror.length()>0) {
+				final Launcher applet = this;
+				SwingUtilities.invokeLater(new Runnable() {
+					public void run() {
+						final String ifname = fname + ":invokeLater";
+						try {
+							Class<?> jsObject = Class.forName("netscape.javascript.JSObject");
+							Method getWindow = jsObject.getMethod("getWindow", Applet.class);
+							Method eval = jsObject.getMethod("eval", String.class);
+							Object window = getWindow.invoke(jsObject, applet);
+							String cbc = "("  + onerror + ")();";
+							debug(ifname, "issuing callback: " + cbc);
+							eval.invoke(window, new Object[] { cbc });
+						} catch(Exception e) {
+							debug(ifname, "problem occurred issuing callback");
+							e.printStackTrace(System.out);
+						}
+					}
+				});
+			}
 			return;
 		}
 		
@@ -125,9 +125,14 @@ public class Launcher extends Applet {
 		
 		// Attempt to make regular expressions out of properties
 		String[] keys = new String[] { "host", "webserver", "trusted" };
+		boolean trustall = false;
 		for (int i=0; i<keys.length; i++) {
 			String key = keys[i];
-			String pattern = props.getProperty("trephine." + key + ".pattern", null);
+			String pattern = props.getProperty("trephine." + key + ".pattern", "");
+			if ("trusted".equals(key) && pattern.length()==0) {
+				debug(fname, "no 'trusted' uri pattern provided - trusting all webservers");
+				trustall = true;
+			}
 			try {
 				patterns.put(key, Pattern.compile("\\A(" + pattern + ")\\Z"));
 			} catch (Throwable t) {
@@ -165,7 +170,7 @@ public class Launcher extends Applet {
 		}
 		
 		// Pre-assigning permissions if the page matches the trusted pattern
-		if (patterns.get("trusted").matcher(pageURL).matches()) {
+		if (trustall || patterns.get("trusted").matcher(pageURL).matches()) {
 			debug(fname, "calling page [" + pageURL + "] matches the trusted pattern - granting permissions.");
 			this.setPermission(true);
 		}
@@ -409,36 +414,36 @@ public class Launcher extends Applet {
 			public void run() {
 				final String ifname = fname + ":invokeLater";
 				if (!applet.hasPermission()) {
-				    int x = (int) Math.floor(Math.random() * 10) + 1;
-				    int y = (int) Math.floor(Math.random() * x);
-				    int sign = Math.random() < 0.5 ? -1 : 1;
-				    String message = (new StringBuffer())
-					    .append("A script on this page is requesting access to privileged system resources:\n\n")
-					    .append("	" + url + "\n\n")
-					    .append("To grant access, answer the following math question and click OK.\n")
-					    .append("To deny access, click Cancel.\n\n")
-					    .append("What is ")
-					    .append(x)
-					    .append(sign==-1 ? " minus " : " plus ")
-					    .append(y)
-					    .append("?")
-					    .toString();
-				    debug(ifname, "prompting user via JOptionPane.showInputDialog");
-				    String response = (String)JOptionPane.showInputDialog(
-					    applet,
-					    message,
-					    "Trephine permission request",
-					    JOptionPane.QUESTION_MESSAGE
-				    );
-				    try {
-					    int z = Integer.parseInt(response);
-					    boolean correct = (z == x + sign * y);
-					    debug(ifname, "user answered " + (correct ? "correctly" : "incorrectly"));
-					    applet.setPermission( correct );
-				    } catch (NumberFormatException e) {
-					    debug(ifname, "null or unparsable response [" + response + "] receieved from user.");
-					    applet.setPermission( false );
-				    }
+					int x = (int) Math.floor(Math.random() * 10) + 1;
+					int y = (int) Math.floor(Math.random() * x);
+					int sign = Math.random() < 0.5 ? -1 : 1;
+					String message = (new StringBuffer())
+						.append("A script on this page is requesting access to privileged system resources:\n\n")
+						.append("	" + url + "\n\n")
+						.append("To grant access, answer the following math question and click OK.\n")
+						.append("To deny access, click Cancel.\n\n")
+						.append("What is ")
+						.append(x)
+						.append(sign==-1 ? " minus " : " plus ")
+						.append(y)
+						.append("?")
+						.toString();
+					debug(ifname, "prompting user via JOptionPane.showInputDialog");
+					String response = (String)JOptionPane.showInputDialog(
+						applet,
+						message,
+						"Trephine permission request",
+						JOptionPane.QUESTION_MESSAGE
+					);
+					try {
+						int z = Integer.parseInt(response);
+						boolean correct = (z == x + sign * y);
+						debug(ifname, "user answered " + (correct ? "correctly" : "incorrectly"));
+						applet.setPermission( correct );
+					} catch (NumberFormatException e) {
+						debug(ifname, "null or unparsable response [" + response + "] receieved from user.");
+						applet.setPermission( false );
+					}
 				}
 				if (callback!=null && callback.length()>0) {
 					try {
