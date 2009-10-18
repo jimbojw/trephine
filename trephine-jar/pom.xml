@@ -133,7 +133,7 @@
                 <resource>
                   <directory>${basedir}/target</directory>
                   <includes>
-                    <include>trephine.jar</include>
+                    <include>${project.artifactId}.jar</include>
                   </includes>
                 </resource>
                 <resource>
