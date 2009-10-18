@@ -15,7 +15,7 @@
 	<a id="launch" href="" title="Begin tests">Click to begin testing...</a>
 </p>
 <div id="status"></div>
-<script type="text/javascript" src="../../main/js/trephine.js"></script>
+<script type="text/javascript" src="dist/trephine.js"></script>
 <script type="text/javascript" src="tests.js"></script>
 </body>
 </html>

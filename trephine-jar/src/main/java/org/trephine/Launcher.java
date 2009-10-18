@@ -81,26 +81,7 @@ public class Launcher extends Applet {
 			this.privileged = true;
 		} catch (SecurityException e) {
 			debug(fname, "privilege check failed, further applet interaction will also fail");
-			if (this.onerror!=null && this.onerror.length()>0) {
-				final Launcher applet = this;
-				SwingUtilities.invokeLater(new Runnable() {
-					public void run() {
-						final String ifname = fname + ":invokeLater";
-						try {
-							Class<?> jsObject = Class.forName("netscape.javascript.JSObject");
-							Method getWindow = jsObject.getMethod("getWindow", Applet.class);
-							Method eval = jsObject.getMethod("eval", String.class);
-							Object window = getWindow.invoke(jsObject, applet);
-							String cbc = "("  + onerror + ")();";
-							debug(ifname, "issuing callback: " + cbc);
-							eval.invoke(window, new Object[] { cbc });
-						} catch(Exception e) {
-							debug(ifname, "problem occurred issuing callback");
-							e.printStackTrace(System.out);
-						}
-					}
-				});
-			}
+			this.issueErrorCallback();
 			return;
 		}
 		
@@ -129,6 +110,12 @@ public class Launcher extends Applet {
 		for (int i=0; i<keys.length; i++) {
 			String key = keys[i];
 			String pattern = props.getProperty("trephine." + key + ".pattern", "");
+			// if no webserver pattern has been supplied, assume host
+			if ("webserver".equals(key) && pattern.length()==0) {
+			    patterns.put(key, patterns.get("host"));
+			    continue;
+			}
+			// if no trusted pattern has been supplied, assume webserver
 			if ("trusted".equals(key) && pattern.length()==0) {
 				debug(fname, "no 'trusted' uri pattern provided - trusting all webservers");
 				trustall = true;
@@ -147,6 +134,7 @@ public class Launcher extends Applet {
 		URL csLocation = this.getClass().getProtectionDomain().getCodeSource().getLocation();
 		if (!patterns.get("host").matcher(csLocation.toString()).matches()) {
 			debug(fname, "applet codebase location [" + csLocation + "] does not match host pattern, any further applet interaction will fail.");
+			this.issueErrorCallback();
 			return;
 		}
 		
@@ -162,10 +150,12 @@ public class Launcher extends Applet {
 		} catch (Exception e) {
 			debug(fname, "unable to retrieve window.top.location from calling page, aborting.");
 			e.printStackTrace(System.out);
+			this.issueErrorCallback();
 			return;
 		}
 		if (!patterns.get("webserver").matcher(pageURL).matches()) {
 			debug(fname, "calling page [" + pageURL + "] does not match webserver pattern, any further applet interaction will fail.");
+			this.issueErrorCallback();
 			return;
 		}
 		
@@ -226,6 +216,7 @@ public class Launcher extends Applet {
 				debug(fname, "failed to download dependency jars");
 				t.printStackTrace(System.out);
 				debug(fname, "END - could not satisfy dependencies");
+				this.issueErrorCallback();
 				return;
 			}
 			
@@ -243,6 +234,7 @@ public class Launcher extends Applet {
 				debug(fname, "failed adding URLs to system classloader");
 				t.printStackTrace(System.out);
 				debug(fname, "END - inhospitable environment");
+				this.issueErrorCallback();
 				return;
 			}
 		}
@@ -332,6 +324,32 @@ public class Launcher extends Applet {
 		if (this.drop!=null) this.drop.put( Job.DONE );
 		this.notifyAll();
 		debug(fname, "END");
+	}
+	
+	/**
+	 * Code to execute the provided onerror callback.
+	 */
+	private void issueErrorCallback() {
+		if (this.onerror==null || this.onerror.length()==0) return;
+		final Launcher applet = this;
+		final String onerror = this.onerror;
+		SwingUtilities.invokeLater(new Runnable() {
+			public void run() {
+				final String fname = "issueErronCallback:invokeLater";
+				try {
+					Class<?> jsObject = Class.forName("netscape.javascript.JSObject");
+					Method getWindow = jsObject.getMethod("getWindow", Applet.class);
+					Method eval = jsObject.getMethod("eval", String.class);
+					Object window = getWindow.invoke(jsObject, applet);
+					String cbc = "("  + onerror + ")();";
+					debug(fname, "issuing callback: " + cbc);
+					eval.invoke(window, new Object[] { cbc });
+				} catch(Exception e) {
+					debug(fname, "problem occurred issuing callback");
+					e.printStackTrace(System.out);
+				}
+			}
+		});
 	}
 
 	/**

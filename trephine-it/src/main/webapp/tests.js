@@ -24,7 +24,7 @@ function launch() {
 	status('notice', 'issuing <code>trephine.load()</code> command');
 	trephine.load({
 		debug: true,
-		root: (document.location + '').match(new RegExp('(.*)/src/it/html/'))[1] + '/target/',
+		root: (document.location + '').match(new RegExp('.*/'))[0] + 'dist/',
 		onload: function() {
 			status('success', 'onload triggered, asking for permissions');
 			trephine.askPermission( function(response) {
