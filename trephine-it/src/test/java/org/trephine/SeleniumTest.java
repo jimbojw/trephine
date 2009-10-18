@@ -11,10 +11,10 @@ public class SeleniumTest extends TestCase
 	}
 	
 	public void testSomethingSimple() throws Exception {
-		DefaultSelenium selenium = createSeleniumClient("file:///home/jimbo/code/checkout/trephine/src/it/html/index.html");
+		DefaultSelenium selenium = createSeleniumClient("http:///localhost:8080/");
 		selenium.start();
 		selenium.click("link=launch");
-		selenium.waitForPageToLoad("30000");
+		selenium.waitForPageToLoad("300000");
 		assertEquals("trephine tests", selenium.getTitle());
 		selenium.stop();
 	}
