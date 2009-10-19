@@ -112,8 +112,8 @@ public class Launcher extends Applet {
 			String pattern = props.getProperty("trephine." + key + ".pattern", "");
 			// if no webserver pattern has been supplied, assume host
 			if ("webserver".equals(key) && pattern.length()==0) {
-			    patterns.put(key, patterns.get("host"));
-			    continue;
+				patterns.put(key, patterns.get("host"));
+				continue;
 			}
 			// if no trusted pattern has been supplied, assume webserver
 			if ("trusted".equals(key) && pattern.length()==0) {
@@ -330,12 +330,12 @@ public class Launcher extends Applet {
 	 * Code to execute the provided onerror callback.
 	 */
 	private void issueErrorCallback() {
-		if (this.onerror==null || this.onerror.length()==0) return;
 		final Launcher applet = this;
 		final String onerror = this.onerror;
+		if (onerror==null || onerror.length()==0) return;
 		SwingUtilities.invokeLater(new Runnable() {
 			public void run() {
-				final String fname = "issueErronCallback:invokeLater";
+				final String fname = "issueErrorCallback:invokeLater";
 				try {
 					Class<?> jsObject = Class.forName("netscape.javascript.JSObject");
 					Method getWindow = jsObject.getMethod("getWindow", Applet.class);
@@ -487,7 +487,10 @@ public class Launcher extends Applet {
 	}
 
 	public static void debug(String fname, Object msg) {
-		if (Launcher.debugEnabled) System.out.println(fname + " - " + msg);
+		if (Launcher.debugEnabled) {
+			System.out.println(fname + " - " + msg);
+			System.out.flush();
+		}
 	}
 	
 		
