@@ -4,20 +4,42 @@ import junit.framework.TestCase;
 
 import com.thoughtworks.selenium.DefaultSelenium;
 
-public class SeleniumTest extends TestCase
-{
-	protected DefaultSelenium createSeleniumClient(String url) throws Exception {
-		return new DefaultSelenium("localhost", 4444, "*firefox", url);
+public class SeleniumTest extends TestCase {
+
+    private String url = "http://localhost:8080/";
+
+	public void testFirefox() throws Exception {
+	    this.runtest(this.url, "*firefox");
 	}
 	
-	public void testSomethingSimple() throws Exception {
-		DefaultSelenium selenium = createSeleniumClient("http:///localhost:8080/");
+	public void testIE() throws Exception {
+	    this.runtest(this.url, "*iexplore");
+	}
+	
+	/*
+	public void testChrome() throws Exception {
+	    this.runtest(this.url, "*chrome");
+	}
+	
+	public void testOpera() throws Exception {
+	    this.runtest(this.url, "*opera");
+	}
+	
+	public void testSafari() throws Exception {
+	    this.runtest(this.url, "*safari");
+	}
+	*/
+	
+	protected void runtest(String url, String browser) {
+		DefaultSelenium selenium = new DefaultSelenium("localhost", 4444, browser, url);
 		selenium.start();
-		selenium.click("link=launch");
-		selenium.waitForPageToLoad("300000");
+		selenium.open(url);
 		assertEquals("trephine tests", selenium.getTitle());
+		selenium.click("id=launch");
+		selenium.waitForCondition("selenium.browserbot.getCurrentWindow().trephine.loaded", "10000");
+		selenium.waitForCondition("selenium.browserbot.getCurrentWindow().trephine.hasPermission()", "10000");
 		selenium.stop();
 	}
-}
 
+}
 
