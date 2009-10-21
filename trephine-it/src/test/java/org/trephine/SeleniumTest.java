@@ -37,7 +37,6 @@ public class SeleniumTest extends TestCase {
 		assertEquals("trephine tests", selenium.getTitle());
 		selenium.click("id=launch");
 		selenium.waitForCondition("selenium.browserbot.getCurrentWindow().trephine.loaded", "10000");
-		selenium.waitForCondition("selenium.browserbot.getCurrentWindow().trephine.hasPermission()", "10000");
 		selenium.stop();
 	}
 
