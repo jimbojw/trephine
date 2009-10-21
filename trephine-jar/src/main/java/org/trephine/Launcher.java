@@ -1,3 +1,28 @@
+/*
+ * Launcher.java
+ * @author Jim R. Wilson (jimbojw | trephine.org)
+ * -----------------------------------------------------------------------------
+ * Copyright (c) 2009, Jim R. Wilson, http://trephine.org
+ * 
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ * 
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ * -----------------------------------------------------------------------------
+ */
 package org.trephine;
 
 import java.applet.Applet;
@@ -48,7 +73,7 @@ public class Launcher extends Applet {
 	private String onerror;
 	
 	/**
-	 * GO!
+	 * Applet initialization.
 	 */
 	@Override
 	public void init() {
@@ -391,6 +416,13 @@ public class Launcher extends Applet {
 		
 	}
 	
+	/**
+	 * Wraps a result and an exception in an ArrayList for returning to the browser - either param may be null.
+	 * Note: IE has trouble with Java native arrays, but seems to respond well to higher-order objects.
+	 * @param Object result The result to return.
+	 * @param Object exception An exception object.
+	 * @return ArrayList Tuple of three elements - a boolean indicating whether an exception was thrown, the result, and the exception.
+	 */
 	private ArrayList<Object> listWrap(Object result, Object exception) {
 		ArrayList<Object> r = new ArrayList<Object>(3);
 		r.add(exception==null);
@@ -399,6 +431,9 @@ public class Launcher extends Applet {
 		return r;
 	}
 	
+	/**
+	 * Write debugging info out to the Java console.
+	 */
 	public static void debug(String fname, Object msg) {
 		if (Launcher.debugEnabled) {
 			System.out.println(fname + " - " + msg);

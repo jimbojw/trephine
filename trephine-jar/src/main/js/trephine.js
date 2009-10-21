@@ -1,6 +1,7 @@
 /**
  * trephine.js
- * (c) Jim R. Wilson 2009
+ * @author Jim R. Wilson (jimbojw | trephine.org)
+ * @license The MIT License
  */
 var trephine = new function(){
 	this.loaded = false;
