@@ -146,7 +146,7 @@ public class Launcher extends Applet {
 			Method getWindow = jsObject.getMethod("getWindow", Applet.class);
 			Method eval = jsObject.getMethod("eval", String.class);
 			Object window = getWindow.invoke(jsObject, this);
-			pageURL = (String) eval.invoke(window, new Object[] { "window.top.location + ''" });
+			pageURL = (String) eval.invoke(window, new Object[] { "window.parent.location + ''" });
 		} catch (Exception e) {
 			debug(fname, "unable to retrieve window.top.location from calling page, aborting.");
 			e.printStackTrace(System.out);
