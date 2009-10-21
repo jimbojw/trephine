@@ -38,13 +38,27 @@ var trephine = new function(){
 				'<param name="onerror" value="parent.trephine._errorLoading" />',
 				(options.debug ? '<param name="debug" value="true" />' : ''),
 				(options.engines ? '<param name="engines" value="' + options.engines.join(',') + '" />' : ''),
-				'</applet><script type="text/javascript">parent.trephine._afterApplet(document.getElementById("trephine_applet"));<',
-				'/script></body></html>'
+				'</applet>',
+				'<script type="text/javascript">(',
+				function() {
+					var window = this, applet = document.getElementById("trephine_applet");
+					if ("init" in applet) return window.parent.trephine._afterApplet(applet);
+					var timeout = 10000, start = (new Date()).valueOf();
+					var handle = setInterval(function(){ 
+						if (applet.init || (new Date()).valueOf() - start > timeout) {
+							window.clearTimeout(handle);
+							return window.parent.trephine._afterApplet(applet);
+						}
+					}, 500);
+				},')();<','/script>',
+				'</body></html>'
 			].join(''));
 			doc.close();
 			self.applet = doc.getElementById('trephine_applet');
 		};
-		this._loadCallback = options.onload || function(){};
+		this._loadCallback = options.onload || function(){
+			self.askPermission(options.onready);
+		};
 		this._finishLoading = function() {
 			this.loaded = true;
 			try {
