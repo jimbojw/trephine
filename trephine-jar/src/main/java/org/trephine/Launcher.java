@@ -37,14 +37,12 @@ public class Launcher extends Applet {
 	private static boolean debugEnabled = false;
 
 	private boolean privileged = false;
-	private boolean permissionGranted = false;
 	private boolean destroyed = false;
 	
 	private Drop drop;
 	private Thread thread;
 	private Thread executor;
 	private List<String> engines = new ArrayList<String>();
-	private HashMap<String,Pattern> patterns = new HashMap<String,Pattern>();
 	
 	private String onload;
 	private String onerror;
@@ -105,34 +103,37 @@ public class Launcher extends Applet {
 		debug(fname, "trephine.properties loaded successfully, building regular expressions...");
 		
 		// Attempt to make regular expressions out of properties
-		String[] keys = new String[] { "host", "webserver", "trusted" };
-		boolean trustall = false;
-		for (int i=0; i<keys.length; i++) {
-			String key = keys[i];
-			String pattern = props.getProperty("trephine." + key + ".pattern", "");
-			// if no webserver pattern has been supplied, assume host
-			if ("webserver".equals(key) && pattern.length()==0) {
-				patterns.put(key, patterns.get("host"));
-				continue;
-			}
-			// if no trusted pattern has been supplied, assume webserver
-			if ("trusted".equals(key) && pattern.length()==0) {
-				debug(fname, "no 'trusted' uri pattern provided - trusting all webservers");
-				trustall = true;
-			}
+		Pattern hostPattern, webserverPattern;
+		{
+			String webserver = props.getProperty("trephine.webserver.pattern", "");
 			try {
-				patterns.put(key, Pattern.compile("\\A(" + pattern + ")\\Z"));
+				webserverPattern = Pattern.compile("\\A(" + webserver + ")\\Z");
 			} catch (Throwable t) {
-				debug(fname, "the trephine.properties key 'trephine." + key + ".pattern' is not a valid regular expression");
+				debug(fname, "the properties key 'trephine.webserver.pattern' is not a valid regular expression");
 				t.printStackTrace(System.out);
+				this.issueErrorCallback();
 				return;
+			}
+			String host = props.getProperty("trephine.host.pattern", "");
+			if (host.length()==0) {
+				debug(fname, "the properties key 'trephine.host.pattern' is empty, using the webserver pattern instead");
+				hostPattern = webserverPattern;
+			} else {
+				try {
+					hostPattern = Pattern.compile("\\A(" + host + ")\\Z");
+				} catch (Throwable t) {
+					debug(fname, "the properties key 'trephine.host.pattern' is not a valid regular expression");
+					t.printStackTrace(System.out);
+					this.issueErrorCallback();
+					return;
+				}
 			}
 		}
 			
 		// Check that codebase came from a permitted host domain
 		debug(fname, "checking applet codesource location against host pattern...");
 		URL csLocation = this.getClass().getProtectionDomain().getCodeSource().getLocation();
-		if (!patterns.get("host").matcher(csLocation.toString()).matches()) {
+		if (!hostPattern.matcher(csLocation.toString()).matches()) {
 			debug(fname, "applet codebase location [" + csLocation + "] does not match host pattern, any further applet interaction will fail.");
 			this.issueErrorCallback();
 			return;
@@ -148,21 +149,15 @@ public class Launcher extends Applet {
 			Object window = getWindow.invoke(jsObject, this);
 			pageURL = (String) eval.invoke(window, new Object[] { "window.parent.location + ''" });
 		} catch (Exception e) {
-			debug(fname, "unable to retrieve window.top.location from calling page, aborting.");
+			debug(fname, "unable to retrieve window.parent.location from calling page, aborting.");
 			e.printStackTrace(System.out);
 			this.issueErrorCallback();
 			return;
 		}
-		if (!patterns.get("webserver").matcher(pageURL).matches()) {
+		if (!webserverPattern.matcher(pageURL).matches()) {
 			debug(fname, "calling page [" + pageURL + "] does not match webserver pattern, any further applet interaction will fail.");
 			this.issueErrorCallback();
 			return;
-		}
-		
-		// Pre-assigning permissions if the page matches the trusted pattern
-		if (trustall || patterns.get("trusted").matcher(pageURL).matches()) {
-			debug(fname, "calling page [" + pageURL + "] matches the trusted pattern - granting permissions.");
-			this.setPermission(true);
 		}
 		
 		debug(fname, "grabbing reference to applet thread...");
@@ -367,12 +362,6 @@ public class Launcher extends Applet {
 			return this.listWrap(null, new RuntimeException("Applet is not running in privileged mode."));
 		}
 		
-		debug(fname, "checking for elevated privileges");
-		if (!this.hasPermission()) {
-			debug(fname, "privileged access has not been granted, exiting!");
-			return this.listWrap(null, new RuntimeException("Privileged access has not yet been granted."));
-		}
-
 		debug(fname, "creating new Job");
 		Job job = new Job( language, code );
 
@@ -410,92 +399,11 @@ public class Launcher extends Applet {
 		return r;
 	}
 	
-	/**
-	 * Asks user for permission to give scripts privileged access.
-	 * @param callback JavaScript function to call when the user has completed the request.
-	 */
-	public void askPermission( final String callback ) {
-		
-		final String fname = "Launcher:askPermission()";
-		
-		if (!this.privileged) {
-			debug(fname, "applet is not running in privileged mode, exiting!");
-			return;
-		}
-		
-		debug(fname, "START");
-		
-		final Launcher applet = this;
-		final String url = this.getDocumentBase().toString().replace("\\","\\\\").replace("'", "\\'");
-
-		SwingUtilities.invokeLater(new Runnable() {
-			public void run() {
-				final String ifname = fname + ":invokeLater";
-				if (!applet.hasPermission()) {
-					int x = (int) Math.floor(Math.random() * 10) + 1;
-					int y = (int) Math.floor(Math.random() * x);
-					int sign = Math.random() < 0.5 ? -1 : 1;
-					String message = (new StringBuffer())
-						.append("A script on this page is requesting access to privileged system resources:\n\n")
-						.append("	" + url + "\n\n")
-						.append("To grant access, answer the following math question and click OK.\n")
-						.append("To deny access, click Cancel.\n\n")
-						.append("What is ")
-						.append(x)
-						.append(sign==-1 ? " minus " : " plus ")
-						.append(y)
-						.append("?")
-						.toString();
-					debug(ifname, "prompting user via JOptionPane.showInputDialog");
-					String response = (String)JOptionPane.showInputDialog(
-						applet,
-						message,
-						"Trephine permission request",
-						JOptionPane.QUESTION_MESSAGE
-					);
-					try {
-						int z = Integer.parseInt(response);
-						boolean correct = (z == x + sign * y);
-						debug(ifname, "user answered " + (correct ? "correctly" : "incorrectly"));
-						applet.setPermission( correct );
-					} catch (NumberFormatException e) {
-						debug(ifname, "null or unparsable response [" + response + "] receieved from user.");
-						applet.setPermission( false );
-					}
-				}
-				if (callback!=null && callback.length()>0) {
-					try {
-						Class<?> jsObject = Class.forName("netscape.javascript.JSObject");
-						Method getWindow = jsObject.getMethod("getWindow", Applet.class);
-						Method eval = jsObject.getMethod("eval", String.class);
-						Object window = getWindow.invoke(jsObject, applet);
-						String cbc = "("  + callback + ")(" + (applet.hasPermission() ? "true": "false") +  ");";
-						debug(ifname, "issuing callback: " + cbc);
-						eval.invoke(window, new Object[] { cbc });
-					} catch(Exception e) {
-						debug(ifname, "problem occurred issuing callback");
-						e.printStackTrace(System.out);
-					}
-				} else {
-					debug(ifname, "no callback to issue");
-				}
-			}
-		});
-		
-		Launcher.debug(fname, "END");
-
-	}
-
 	public static void debug(String fname, Object msg) {
 		if (Launcher.debugEnabled) {
 			System.out.println(fname + " - " + msg);
 			System.out.flush();
 		}
-	}
-	
-		
-	private synchronized void setPermission(boolean permission) {
-		this.permissionGranted = permission;
 	}
 	
 	public static boolean isDebugEnabled() { return debugEnabled; }
@@ -504,7 +412,6 @@ public class Launcher extends Applet {
 
 	public boolean isPrivileged() { return privileged; }
 	public boolean isDestroyed() { return destroyed; }
-	public boolean hasPermission() { return this.permissionGranted; }
 
 	public List<String> getEngines() {
 		return java.util.Collections.unmodifiableList(this.engines);
@@ -543,12 +450,11 @@ public class Launcher extends Applet {
 		 * @return
 		 */
 		private PermissionCollection getExtendedPermissions(PermissionCollection permissions) {
-			permissions.add(new AllPermission());
 			if (this.launcher.isDestroyed()) return permissions;
 			if (this.inCheck) return permissions;
 			this.inCheck = true;
 			if (Thread.currentThread().getThreadGroup().parentOf(this.launcher.thread.getThreadGroup())) {
-				if (this.launcher.hasPermission()) permissions.add(new AllPermission());
+				permissions.add(new AllPermission());
 			}
 			this.inCheck = false;
 			return permissions;

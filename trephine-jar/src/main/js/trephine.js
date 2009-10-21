@@ -56,9 +56,7 @@ var trephine = new function(){
 			doc.close();
 			self.applet = doc.getElementById('trephine_applet');
 		};
-		this._loadCallback = options.onload || function(){
-			self.askPermission(options.onready);
-		};
+		this._loadCallback = options.onload || function(){};
 		this._finishLoading = function() {
 			this.loaded = true;
 			try {
@@ -101,12 +99,6 @@ var trephine = new function(){
 		return { success: result.get(0), result: result.get(1), error: result.get(2) };
 	};
 	this.isPrivileged = function(){ return (this.handler ? this.handler.isPrivileged() : null); };
-	this.hasPermission = function(){ return (this.handler ? this.handler.hasPermission() : null); };
-	this.askPermission = function( callback ){
-		if (!this.handler) return;
-		this._askCallback = callback || function(){};
-		return this.handler.askPermission( 'parent.trephine._askCallback' );
-	};
 	this.isDebugEnabled = function(){ return (this.handler ? this.handler.isDebugEnabled() : null); };
 	this.enableDebug = function(){ return (this.handler ? this.handler.enableDebug() : null); };
 	this.version = function(){ return (this.handler ? this.handler.getVersion() : null); };

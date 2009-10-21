@@ -26,14 +26,7 @@ function launch() {
 		debug: true,
 		root: (document.location + '').match(new RegExp('.*/'))[0] + 'dist/',
 		onload: function() {
-			status('success', 'onload triggered, asking for permissions');
-			trephine.askPermission( function(response) {
-				if (response) {
-					status('success', 'permission callback fired, result: true');
-				} else {
-					status('error', 'permission callback fired, result: false');
-				}
-			} );
+			status('success', 'trephine loaded successfully');
 		},
 		onerror: function() {
 			status('error', 'something went wrong loading trephine');

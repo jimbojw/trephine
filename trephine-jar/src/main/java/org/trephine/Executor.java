@@ -177,10 +177,6 @@ public class Executor extends Thread {
 			Launcher.debug(fname, "END - applet is not running in privileged mode, exiting!");
 			return false;
 		}
-		if (!this.applet.hasPermission()) {
-			Launcher.debug(fname, "END - privileged access has not been granted, exiting!");
-			return false;
-		}
 		
 		URLClassLoader appClassLoader = (URLClassLoader)ClassLoader.getSystemClassLoader();
 		try {

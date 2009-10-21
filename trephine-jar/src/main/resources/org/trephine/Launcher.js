@@ -37,8 +37,6 @@ var marshal = global.marshal = new Packages.org.trephine.Marshal({
 		return result;
 	},
 	isPrivileged: function(){ return applet.isPrivileged(); },
-	hasPermission: function(){ return applet.hasPermission(); },
-	askPermission: function(callback){ return applet.askPermission(callback); },
 	isDebugEnabled: function(){ return applet.isDebugEnabled(); },
 	enableDebug: function(){ return applet.enableDebug(); }
 });
