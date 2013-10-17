@@ -23,7 +23,7 @@ var window = global.window = Packages.netscape.javascript.JSObject.getWindow(app
 debug("  window = " + window);
 
 debug("setting up trephine object in DOM window and document...");
-var trephine = window.eval("window.trephine = document.trephine = { set: function(key,val) { this[key] = val; } };");
+var trephine = window.eval("window.trephine = { set: function(key,val) { this[key] = val; } };");
 debug("  trephine = " + trephine);
 
 debug("implementing Marshal...");
