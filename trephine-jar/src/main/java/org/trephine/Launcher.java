@@ -290,15 +290,7 @@ public class Launcher extends Applet {
 					debug(ifname, "attempting to load Launcher.js resource - " + jsURL);
 					InputStreamReader reader = new InputStreamReader( jsURL.openStream() );
 					debug(ifname, "executing JavaScript code in Launcher.js ...");
-					engine.eval(reader);
 					Object result = engine.eval(reader);
-					debug(ifname, "result: " + result);
-					jsURL = new URL( "jar:" + jarURL.toString() + "!/org/trephine/JSON.js" );
-					debug(ifname, "attempting to load JSON.js resource - " + jsURL);
-					reader = new InputStreamReader( jsURL.openStream() );
-					debug(ifname, "executing JavaScript code in JSON.js ...");
-					engine.eval(reader);
-					result = engine.eval(reader);
 					debug(ifname, "result: " + result);
 				} catch (Exception e) {
 					debug(ifname, "Error evaluating code");
