@@ -1,0 +1,139 @@
+<!doctype html>
+<html>
+<head>
+<title>trephine example page</title>
+</head>
+<body>
+<h1>ahoy!</h1>
+<script type="text/javascript" src="../trephine-jar/src/main/js/trephine.js"></script>
+<script>
+
+var
+  
+  /**
+   * Run a function in trephine, passing in any data provided.
+   */
+  run = function(fn /*, arg1, ...*/) {
+    var args = Array.prototype.slice.call(arguments, 1);
+    return trephine.exec('js', '(' + fn + ').apply(null,' + JSON.stringify(args) + ')');
+  },
+  
+  /**
+   * Execute a traceroute.
+   * @param {object} options Hash of options, contains the following:
+   *  - host - Host name to hit with traceroute.
+   *  - ondata - Callback to call with lines of data as they come in.
+   *  - onend - Callback to call when the traceroute is done. 
+   */
+  traceroute = function(options) {
+    
+    // generate random job id
+    var id = 'trjob' + Math.random();
+    
+    // store job in accessable place
+    window[id] = {
+      host: options.host,
+      ondata: options.ondata || function(){},
+      onend: options.onend || function(){}
+    }
+    
+    var result = run(function(host, id){
+      // <rhino>
+      
+      var
+        
+        // log it out
+        log = function(msg) {
+          java.lang.System.out.println("   >>>>>>   " + msg);
+          //window.eval('window.parent.console.log(' + JSON.stringify(msg) + ')');
+        },
+        
+        // construct a new thread to run the specified function
+        Thread = function(fn) {
+          return new java.lang.Thread(new java.lang.Runnable({run:fn}));
+        },
+        
+        /**
+         * Trigger job handler with any arguments.
+         * @param {string} type Handler type to invoke ('data' or 'end')
+         * @param {mixed} arg1.. Additional arguments to pass to job handler.
+         */
+        trigger = function(type /*, arg1... */) {
+          var args = Array.prototype.slice.call(arguments);
+          args.unshift(id);
+          window.eval('(' + function(id, type) {
+            var args = Array.prototype.slice.call(arguments, 2);
+            window.parent[id]['on' + type].apply(null, args);
+          } + ').apply(null, ' + JSON.stringify(args)+ ')');
+        };
+      
+      
+      log("initating traceroute to " + host);
+      
+      var thread = Thread(function(){
+        
+        var
+          
+          proc = java.lang.Runtime.getRuntime().exec(['traceroute', host]),
+          
+          reader = new java.io.BufferedReader(
+            new java.io.InputStreamReader(proc.getInputStream())
+          ),
+          
+          line = reader.readLine();
+        
+        while (line !== null) {
+          trigger('data', line + '');
+          line = reader.readLine();
+        }
+        
+        trigger('end', proc.waitFor());
+        
+      });
+      thread.start();
+      
+      /*
+            Runtime rt = Runtime.getRuntime();
+            Process proc = rt.exec("javac");
+            InputStream stderr = proc.getErrorStream();
+            InputStreamReader isr = new InputStreamReader(stderr);
+            BufferedReader br = new BufferedReader(isr);
+            String line = null;
+            System.out.println("<ERROR>");
+            while ( (line = br.readLine()) != null)
+                System.out.println(line);
+            System.out.println("</ERROR>");
+            int exitVal = proc.waitFor();
+            System.out.println("Process exitValue: " + exitVal);
+      */
+      
+      
+      // </rhino>
+    }, options.host, id);
+    console.log(result);
+  };
+
+trephine.load({
+  debug: true,
+  force: true,
+  root: 'http://localhost/checkout/trephine/trephine-jar/dist/',
+  engines: ['js'],
+  onload: function() {
+    console.log('load', arguments);
+    traceroute({
+      host: 'google.com',
+      ondata: function(data) {
+        console.log(['DATA', data]);
+      },
+      onend: function(exitCode) {
+        console.log(['END', exitCode]);
+      }
+    });
+  },
+  onerror: function() {
+    console.log('ERROR', arguments);
+  }
+});
+</script>
+</body>
+</head>
